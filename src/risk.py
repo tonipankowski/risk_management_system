@@ -33,6 +33,10 @@ def portfolio_returns(returns: pd.DataFrame, weights: pd.Series) -> pd.Series:
 def portfolio_volatility(portfolio_returns):
     return portfolio_returns.std() * (252 ** 0.5)
 
+def historical_var(portfolio_returns, confidence=0.95):
+    """Historical VaR"""
+    return -portfolio_returns.quantile(1 - confidence)
+    
 if __name__ == "__main__":
     provider = CSVProvider("data/sample_prices.csv")
     prices = provider.get_prices(["AAPL", "MSFT", "SPY"], "2024-01-01", "2025-01-01")
@@ -43,6 +47,8 @@ if __name__ == "__main__":
     weights = pd.Series({"AAPL": 0.35, "MSFT": 0.15, "SPY": 0.50})
     port = portfolio_returns(returns, weights)
     port_vol = portfolio_volatility(port)
+    var_95 = historical_var(port)
+    var_99 = historical_var(port, confidence=0.99)
     
     print(returns.head())
     print(returns.shape)
@@ -53,3 +59,5 @@ if __name__ == "__main__":
     print(port.head())
     print(port.shape)
     print("Portfolio volatility:", port_vol)
+    print("95% VaR:", var_95)
+    print("99% VaR:", var_99)
