@@ -23,6 +23,13 @@ def drawdown(returns: pd.DataFrame) -> pd.DataFrame:
     df["running_peak"] = df.groupby("ticker")["cum_value"].cummax()
     df["drawdown"] = (df["cum_value"] - df["running_peak"]) / df["running_peak"] 
     return df
+
+def portfolio_returns(returns: pd.DataFrame, weights: pd.Series) -> pd.Series:
+    """Weighted portfolio return series, one value per date"""
+    wide = returns.pivot(index="date", columns="ticker", values="return")
+    weighted = wide * weights
+    return weighted.sum(axis=1)
+    
 if __name__ == "__main__":
     provider = CSVProvider("data/sample_prices.csv")
     prices = provider.get_prices(["AAPL", "MSFT", "SPY"], "2024-01-01", "2025-01-01")
@@ -30,6 +37,8 @@ if __name__ == "__main__":
     vol = compute_volatility(returns)
     corr = correlation_matrix(returns)
     dd = drawdown(returns)
+    weights = pd.Series({"AAPL": 0.35, "MSFT": 0.15, "SPY": 0.50})
+    port = portfolio_returns(returns, weights)
     
     print(returns.head())
     print(returns.shape)
@@ -37,3 +46,5 @@ if __name__ == "__main__":
     print(corr)
     print(dd.head())
     print(dd.groupby("ticker")["drawdown"].min())
+    print(port.head())
+    print(port.shape)
