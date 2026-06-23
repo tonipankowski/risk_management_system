@@ -30,6 +30,9 @@ def portfolio_returns(returns: pd.DataFrame, weights: pd.Series) -> pd.Series:
     weighted = wide * weights
     return weighted.sum(axis=1)
     
+def portfolio_volatility(portfolio_returns):
+    return portfolio_returns.std() * (252 ** 0.5)
+
 if __name__ == "__main__":
     provider = CSVProvider("data/sample_prices.csv")
     prices = provider.get_prices(["AAPL", "MSFT", "SPY"], "2024-01-01", "2025-01-01")
@@ -39,6 +42,7 @@ if __name__ == "__main__":
     dd = drawdown(returns)
     weights = pd.Series({"AAPL": 0.35, "MSFT": 0.15, "SPY": 0.50})
     port = portfolio_returns(returns, weights)
+    port_vol = portfolio_volatility(port)
     
     print(returns.head())
     print(returns.shape)
@@ -48,3 +52,4 @@ if __name__ == "__main__":
     print(dd.groupby("ticker")["drawdown"].min())
     print(port.head())
     print(port.shape)
+    print("Portfolio volatility:", port_vol)
