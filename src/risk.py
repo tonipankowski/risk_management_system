@@ -16,14 +16,24 @@ def correlation_matrix(returns):
     wide = returns.pivot(index="date", columns="ticker", values="return")
     wide = wide.corr()
     return wide
+
+def drawdown(returns: pd.DataFrame) -> pd.DataFrame:
+    df = returns.sort_values(["ticker", "date"])
+    df["cum_value"] = df.groupby("ticker")["return"].transform(lambda x: (1 + x).cumprod())
+    df["running_peak"] = df.groupby("ticker")["cum_value"].cummax()
+    df["drawdown"] = (df["cum_value"] - df["running_peak"]) / df["running_peak"] 
+    return df
 if __name__ == "__main__":
     provider = CSVProvider("data/sample_prices.csv")
     prices = provider.get_prices(["AAPL", "MSFT", "SPY"], "2024-01-01", "2025-01-01")
     returns = compute_returns(prices)
     vol = compute_volatility(returns)
     corr = correlation_matrix(returns)
+    dd = drawdown(returns)
     
     print(returns.head())
     print(returns.shape)
     print(vol)
     print(corr)
+    print(dd.head())
+    print(dd.groupby("ticker")["drawdown"].min())
