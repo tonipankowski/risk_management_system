@@ -1,5 +1,6 @@
 import pandas as pd
 from providers import CSVProvider
+from scipy.stats import norm
 
 def compute_returns(prices: pd.DataFrame) -> pd.DataFrame:
     """Add a return column daily pct change per ticker"""
@@ -36,6 +37,14 @@ def portfolio_volatility(portfolio_returns):
 def historical_var(portfolio_returns, confidence=0.95):
     """Historical VaR"""
     return -portfolio_returns.quantile(1 - confidence)
+
+def parametric_var(portfolio_returns, confidence=0.95):
+    """Parametric VaR"""
+    mean = portfolio_returns.mean()
+    std = portfolio_returns.std()
+    z = norm.ppf(1 - confidence)
+    return -(mean + z * std)
+    
     
 if __name__ == "__main__":
     provider = CSVProvider("data/sample_prices.csv")
@@ -59,5 +68,8 @@ if __name__ == "__main__":
     print(port.head())
     print(port.shape)
     print("Portfolio volatility:", port_vol)
-    print("95% VaR:", var_95)
-    print("99% VaR:", var_99)
+    print("Historical 95% VaR:", var_95)
+    print("Parametric 95% VaR:", parametric_var(port))
+    
+    print("Historical 99% VaR:", var_99)
+    print("Parametric 99% VaR:", parametric_var(port, confidence=0.99))
