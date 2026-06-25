@@ -47,12 +47,19 @@ def parametric_var(portfolio_returns, confidence=0.95):
     return -(mean + z * std)
 
 def montecarlo_var(portfolio_returns, confidence=0.95, n_simulations=10000):
+    """Monte Carlo VaR"""
     np.random.seed(42)
     mean = portfolio_returns.mean()
     std = portfolio_returns.std()
 
     simulated = np.random.normal(mean, std, n_simulations)
     return -np.quantile(simulated, 1 - confidence)
+    
+def expected_shortfall(portfolio_returns, confidence=0.95):
+    """average loss on days worse than the VaR threshold."""
+    threshold = portfolio_returns.quantile(1 - confidence)
+    tail = portfolio_returns[portfolio_returns <= threshold]
+    return -tail.mean()
     
 if __name__ == "__main__":
     provider = CSVProvider("data/sample_prices.csv")
@@ -84,3 +91,6 @@ if __name__ == "__main__":
     print("Historical 99% VaR:", var_99)
     print("Parametric 99% VaR:", parametric_var(port, confidence=0.99))
     print("Monte Carlo 99% VaR:", montecarlo_var(port, confidence=0.99))
+    
+    print("Expected Shortfall 95%:", expected_shortfall(port))
+    print("Expected Shortfall 99%:", expected_shortfall(port, confidence=0.99))
