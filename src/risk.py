@@ -5,7 +5,7 @@ import numpy as np
 def compute_returns(prices: pd.DataFrame) -> pd.DataFrame:
     """Add a return column daily pct change per ticker"""
     df = prices.sort_values(["ticker", "date"])
-    df["return"] = df.groupby("ticker")["adj_close"].pct_change()
+    df["return"] = df.groupby("ticker")["adj_close"].pct_change(fill_method=None)
     df = df.dropna()
     return df
 
