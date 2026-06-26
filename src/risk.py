@@ -1,5 +1,4 @@
 import pandas as pd
-from providers import CSVProvider
 from scipy.stats import norm
 import numpy as np
 
