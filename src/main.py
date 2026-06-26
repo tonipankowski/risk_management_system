@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import date
-from providers import YFinanceProvider
+from providers import AlpacaProvider
 import risk
 import portfolio
 import storage
@@ -37,10 +37,10 @@ def print_dashboard(summary, total, port):
     print()
     print("  RISK METRICS")
     print(f"  Volatility (annualized): {risk.portfolio_volatility(port):.1%}")
-    print(f"  95% VaR (historical): {risk.historical_var(port):.2%}")
-    print(f"  95% VaR (parametric): {risk.parametric_var(port):.2%}")        
-    print(f"  95% VaR (Monte Carlo): {risk.montecarlo_var(port):.2%}")
-    print(f"  95% Expected Shortfall:   {risk.expected_shortfall(port):.2%}")
+    print(f"  95% VaR (historical):    {risk.historical_var(port):.2%}")
+    print(f"  95% VaR (parametric):    {risk.parametric_var(port):.2%}")        
+    print(f"  95% VaR (Monte Carlo):   {risk.montecarlo_var(port):.2%}")
+    print(f"  95% Expected Shortfall:  {risk.expected_shortfall(port):.2%}")
     print("=" * 50)
         
 if __name__ == "__main__":
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     storage.save_positions(positions)
     
     tickers = list(positions.index)
-    provider = YFinanceProvider()
+    provider = AlpacaProvider()
     prices = provider.get_prices(tickers, "2024-01-01", str(date.today()))
     
     valid = set(prices.dropna(subset=["adj_close"])["ticker"].unique())
