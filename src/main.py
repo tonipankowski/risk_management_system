@@ -39,3 +39,7 @@ print("Monte Carlo 99% VaR:", risk.montecarlo_var(port, confidence=0.99))
 
 print("Expected Shortfall 95%:", risk.expected_shortfall(port))
 print("Expected Shortfall 99%:", risk.expected_shortfall(port, confidence=0.99))
+
+summary, total = portfolio.portfolio_summary(positions, prices_latest)
+print(summary)
+print("Total portfolio value:", total)
