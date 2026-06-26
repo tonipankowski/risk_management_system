@@ -22,6 +22,27 @@ def get_user_positions():
         
     return positions
 
+def print_dashboard(summary, total, port):
+    print("=" * 50)
+    print("  PORTFOLIO RISK REPORT")
+    print("=" * 50)
+    print(f"  Total value: ${total:,.2f}")
+    print()
+    print("  Holdings")
+    for ticker, row in summary.iterrows():
+        shares = row["shares"]
+        value = row["value"]
+        weight = row["weight"]
+        print(f"  {ticker:<6} {shares:>6.0f} sh  ${value:,.2f}  {weight:.1%}")
+    print()
+    print("  RISK METRICS")
+    print(f"  Volatility (annualized): {risk.portfolio_volatility(port):.1%}")
+    print(f"  95% VaR (historical): {risk.historical_var(port):.2%}")
+    print(f"  95% VaR (parametric): {risk.parametric_var(port):.2%}")        
+    print(f"  95% VaR (Monte Carlo): {risk.montecarlo_var(port):.2%}")
+    print(f"  95% Expected Shortfall:   {risk.expected_shortfall(port):.2%}")
+    print("=" * 50)
+        
 if __name__ == "__main__":
     
     storage.init_db()
@@ -49,11 +70,4 @@ if __name__ == "__main__":
     port = risk.portfolio_returns(returns, weights)
     
     summary, total = portfolio.portfolio_summary(positions, prices_latest)
-    print(summary)
-    print("Total portfolio value:", total)
-    print("Portfolio volatility:", risk.portfolio_volatility(port))
-    print("Historical 95% VaR:", risk.historical_var(port))
-    print("Parametric 95% VaR:", risk.parametric_var(port))
-    print("Monte Carlo 95% VaR:", risk.montecarlo_var(port))
-    print("Expected Shortfall 95%:", risk.expected_shortfall(port))
-    
+    print_dashboard(summary, total, port)
