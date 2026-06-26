@@ -2,6 +2,7 @@ import pandas as pd
 from providers import CSVProvider
 import risk
 import portfolio
+import storage
 
 provider = CSVProvider("data/sample_prices.csv")
 prices = provider.get_prices(["AAPL", "MSFT", "SPY"], "2024-01-01", "2025-01-01")
@@ -10,7 +11,13 @@ vol = risk.compute_volatility(returns)
 corr = risk.correlation_matrix(returns)
 dd = risk.drawdown(returns)
 
+storage.init_db()
 positions = pd.Series({"AAPL": 10, "MSFT": 5, "SPY": 20})
+#storage.save_positions(positions)
+loaded = storage.load_positions()
+
+print("Loaded from DB:\n", loaded)
+
 prices_latest = portfolio.latest_price(prices)
 weights = portfolio.compute_weights(positions, prices_latest)
 print("Weights:\n", weights)
