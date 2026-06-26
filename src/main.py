@@ -32,9 +32,9 @@ if __name__ == "__main__":
     provider = YFinanceProvider()
     prices = provider.get_prices(tickers, "2024-01-01", str(date.today()))
     
-    fetched = set(prices["ticker"].unique())
+    valid = set(prices.dropna(subset=["adj_close"])["ticker"].unique())
     requested = set(tickers)
-    missing = requested - fetched 
+    missing = requested - valid
     if missing:
         print(f"Warning: no data for {missing}.")
         positions = positions.drop(list(missing))
