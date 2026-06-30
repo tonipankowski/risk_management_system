@@ -33,7 +33,7 @@ def get_user_positions():
         
     return positions, asset_types
 
-def print_dashboard(summary, total, port, returns):
+def print_dashboard(summary, total, port, prices, asset_types):
     print()
     print("=" * 50)
     print("  PORTFOLIO RISK REPORT")
@@ -58,7 +58,7 @@ def print_dashboard(summary, total, port, returns):
     print("=" * 50)
     print("  CORRELATION MATRIX")
     print()
-    corr = risk.correlation_matrix(returns)
+    corr = risk.correlation_matrix(prices, asset_types)
     corr.index.name = None
     corr.columns.name = None
     corr_text = corr.round(2).to_string()
@@ -135,17 +135,15 @@ if __name__ == "__main__":
         prices = prices[prices["ticker"].isin(tickers)]
         prices = prices.dropna(subset=["adj_close"])
     
-        returns = risk.compute_returns(prices)
         prices_latest = portfolio.latest_price(prices)
         weights = portfolio.compute_weights(positions, prices_latest)
         port = risk.portfolio_returns(prices, weights, asset_types)
         summary, total = portfolio.portfolio_summary(positions, prices_latest)
         
-        print_dashboard(summary, total, port, returns)
+        print_dashboard(summary, total, port, prices, asset_types)
         
         action = input(
-            "\nOptions: (add) ticker, (delete) ticker, (change) quantity, (quit): "
-        ).strip().lower()
+            "\nOptions: (add) ticker, (delete) ticker, (change) quantity, (quit): ").strip().lower()
         
         if action == "quit":
             print("See you later!")

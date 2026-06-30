@@ -13,10 +13,9 @@ def compute_volatility(returns):
     """Annual volatility"""
     return returns.groupby("ticker")["return"].std() * (252 ** 0.5)
 
-def correlation_matrix(returns):
-    wide = returns.pivot(index="date", columns="ticker", values="return")
-    wide = wide.corr()
-    return wide
+def correlation_matrix(prices, asset_types=None):
+    wr = wide_returns(prices, asset_types, fill=False)
+    return wr.corr()
 
 def drawdown(returns: pd.DataFrame) -> pd.DataFrame:
     df = returns.sort_values(["ticker", "date"])
@@ -25,18 +24,16 @@ def drawdown(returns: pd.DataFrame) -> pd.DataFrame:
     df["drawdown"] = (df["cum_value"] - df["running_peak"]) / df["running_peak"] 
     return df
 
-def portfolio_returns(prices, weights, asset_types=None):
-    
+def wide_returns(prices, asset_types=None, fill=True):
     wide = prices.pivot(index="date", columns="ticker", values="adj_close")
-    
     has_crypto = asset_types is not None and "crypto" in asset_types.values()
-    if has_crypto:
+    if has_crypto and fill:
         wide = wide.ffill()
-        
-    wide_returns = wide.pct_change(fill_method=None).dropna()
-    
-    weighted = wide_returns * weights
-    return weighted.sum(axis=1)
+    return wide.pct_change(fill_method=None).dropna()
+
+def portfolio_returns(prices, weights, asset_types=None):
+    wr = wide_returns(prices, asset_types, fill=True)
+    return (wr * weights).sum(axis=1)
 
 def portfolio_volatility(portfolio_returns):
     return portfolio_returns.std() * (252 ** 0.5)
