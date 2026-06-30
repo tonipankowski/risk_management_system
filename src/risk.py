@@ -64,3 +64,7 @@ def expected_shortfall(portfolio_returns, confidence=0.95):
     tail = portfolio_returns[portfolio_returns <= threshold]
     return -tail.mean()
     
+def sharpe_ratio(portfolio_returns, risk_free=0.04):
+    annual_return = portfolio_returns.mean() * 252
+    annual_vol = portfolio_returns.std() * (252 ** 0.5)
+    return (annual_return - risk_free) / annual_vol

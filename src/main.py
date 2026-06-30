@@ -55,6 +55,8 @@ def print_dashboard(summary, total, port, prices, asset_types):
     print(f"  95% VaR (parametric):    {risk.parametric_var(port):.2%}")        
     print(f"  95% VaR (Monte Carlo):   {risk.montecarlo_var(port):.2%}")
     print(f"  95% Expected Shortfall:  {risk.expected_shortfall(port):.2%}")
+    print()
+    print(f"  Sharpe ratio:            {risk.sharpe_ratio(port):.2f}")
     print("=" * 50)
     print("  CORRELATION MATRIX")
     print()
