@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import date
-from providers import AlpacaProvider
+from providers import AlpacaProvider, AlpacaCryptoProvider
 import risk
 import portfolio
 import storage
@@ -8,6 +8,7 @@ import auth
 
 def get_user_positions():
     positions = {}
+    asset_types = {}
     print("Enter your portfolio. Type 'done' when finished.")
     while True:
         ticker = input("Ticker (or 'done'): ").strip().upper()
@@ -15,13 +16,22 @@ def get_user_positions():
             break
         if ticker == "":
             continue
+        atype = input(f"Is {ticker} a stock or crypto? ").strip().lower()
+        if atype == "stock":
+            asset_type = "stock"
+        elif atype == "crypto":
+            asset_type = "crypto"
+        else:
+            print(" Please answer 'stock' or 'crypto'.")
+            continue
         qty = input(f"Number of shares of {ticker}: ").strip()
         try:
             positions[ticker] = float(qty)
+            asset_types[ticker] = asset_type 
         except ValueError:
             print(f" '{qty}' isn't a valid number - skipping {ticker}, try again.")
         
-    return positions
+    return positions, asset_types
 
 def print_dashboard(summary, total, port, returns):
     print()
@@ -81,7 +91,7 @@ def do_auth():
             return user_id
         
         else:
-            print("PLease type 'r' or 'l'.")
+            print("PLease type 'register' or 'login'.")
             
 if __name__ == "__main__":
     auth.init_users_db()
@@ -89,23 +99,37 @@ if __name__ == "__main__":
     
     user_id = do_auth()
     
-    positions = storage.load_positions (user_id)
+    positions,asset_types = storage.load_positions (user_id)
     if len(positions) == 0:
         print("\nNo saved portfolio found. Create one now.")
-        positions = pd.Series(get_user_positions())
-        storage.save_positions(positions, user_id)
+        pos_dict, asset_types = get_user_positions()
+        positions = pd.Series(pos_dict)
+        storage.save_positions(positions, asset_types, user_id)
+        
+    stock_provider = AlpacaProvider()
+    crypto_provider = AlpacaCryptoProvider()
         
     while True:
         tickers = list(positions.index)
-        provider = AlpacaProvider()
-        prices = provider.get_prices(tickers, "2024-01-01", str(date.today()))
-    
+        
+        stock_tickers = [t for t in tickers if asset_types[t] == "stock"]
+        crypto_tickers = [t for t in tickers if asset_types[t] == "crypto"]
+        
+        frames = []
+        if stock_tickers:
+            frames.append(stock_provider.get_prices(stock_tickers, "2024-01-01", str(date.today())))
+        if crypto_tickers:
+            frames.append(crypto_provider.get_prices(crypto_tickers, "2024-01-01", str(date.today())))
+        prices = pd.concat(frames)
+        
         valid = set(prices.dropna(subset=["adj_close"])["ticker"].unique())
-        requested = set(tickers)
-        missing = requested - valid
+        missing = set(tickers) - valid
         if missing:
             print(f"Warning: no data for {missing}.")
             positions = positions.drop(list(missing))
+            for t in missing:
+                asset_types.pop(t, None)
+            storage.save_positions(positions, asset_types, user_id)
             tickers = list(positions.index)
     
         prices = prices[prices["ticker"].isin(tickers)]
@@ -129,25 +153,31 @@ if __name__ == "__main__":
         
         elif action == "add":
             ticker = input("Ticker to add: ").strip().upper()
+            atype = input(f"Is {ticker} a stock or crypto? ").strip().lower()
+            if atype not in ("stock", "crypto"):
+                print("Please answer 'stock' or 'crypto'.")
+                continue
             qty = input(f"Number of shares of {ticker}: ").strip()
             try:
                 qty = float(qty)
             except ValueError:
                 print(f"'{qty}' isn't a valid number.")
                 continue
-            
-            test = provider.get_prices([ticker], "2024-01-01", str(date.today()))
+            prov = stock_provider if atype == "stock" else crypto_provider
+            test = prov.get_prices([ticker], "2024-01-01", str(date.today()))
             if test.dropna(subset=["adj_close"]).empty:
                 print(f"'{ticker}' isn't a valid ticker - not added.")
             else:
                 positions[ticker] = qty
-                storage.save_positions(positions, user_id)
+                asset_types[ticker] = atype
+                storage.save_positions(positions, asset_types, user_id)
                 
         elif action == "delete":
             ticker = input("Ticker to delete: ").strip().upper()
             if ticker in positions.index:
                 positions = positions.drop(ticker)
-                storage.save_positions(positions, user_id)
+                asset_types.pop(ticker, None)
+                storage.save_positions(positions, asset_types, user_id)
             else:
                 print(f"{ticker} not found in the portfolio.")
         
@@ -157,7 +187,7 @@ if __name__ == "__main__":
                 qty = input(f"New number of shares of {ticker}: ").strip()
                 try:
                     positions[ticker] = float(qty)
-                    storage.save_positions(positions, user_id)
+                    storage.save_positions(positions, asset_types, user_id)
                 except ValueError:
                     print(f"'{qty}' isn't a valid number.")
             else:
