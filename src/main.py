@@ -138,7 +138,7 @@ if __name__ == "__main__":
         returns = risk.compute_returns(prices)
         prices_latest = portfolio.latest_price(prices)
         weights = portfolio.compute_weights(positions, prices_latest)
-        port = risk.portfolio_returns(returns, weights)
+        port = risk.portfolio_returns(prices, weights, asset_types)
         summary, total = portfolio.portfolio_summary(positions, prices_latest)
         
         print_dashboard(summary, total, port, returns)

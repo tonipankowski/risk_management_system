@@ -25,12 +25,19 @@ def drawdown(returns: pd.DataFrame) -> pd.DataFrame:
     df["drawdown"] = (df["cum_value"] - df["running_peak"]) / df["running_peak"] 
     return df
 
-def portfolio_returns(returns: pd.DataFrame, weights: pd.Series) -> pd.Series:
-    """Weighted portfolio return series, one value per date"""
-    wide = returns.pivot(index="date", columns="ticker", values="return")
-    weighted = wide * weights
-    return weighted.sum(axis=1)
+def portfolio_returns(prices, weights, asset_types=None):
     
+    wide = prices.pivot(index="date", columns="ticker", values="adj_close")
+    
+    has_crypto = asset_types is not None and "crypto" in asset_types.values()
+    if has_crypto:
+        wide = wide.ffill()
+        
+    wide_returns = wide.pct_change(fill_method=None).dropna()
+    
+    weighted = wide_returns * weights
+    return weighted.sum(axis=1)
+
 def portfolio_volatility(portfolio_returns):
     return portfolio_returns.std() * (252 ** 0.5)
 
