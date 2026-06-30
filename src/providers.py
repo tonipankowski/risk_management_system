@@ -3,8 +3,11 @@ import pandas as pd
 import yfinance as yf
 import os
 from dotenv import load_dotenv
+
 from alpaca.data.historical import StockHistoricalDataClient
 from alpaca.data.requests import StockBarsRequest
+from alpaca.data.historical import CryptoHistoricalDataClient
+from alpaca.data.requests import CryptoBarsRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.data.enums import Adjustment
 
@@ -42,7 +45,24 @@ class AlpacaProvider(DataProvider):
         mod = (raw.reset_index()[["timestamp", "symbol", "close"]].rename(columns={"timestamp": "date", "symbol": "ticker", "close": "adj_close"}))
         mod["date"] = mod["date"].dt.tz_localize(None).dt.normalize()
         return mod
-               
+
+class AlpacaCryptoProvider(DataProvider):
+    def __init__(self):
+        self.client = CryptoHistoricalDataClient()
+
+    def get_prices(self, tickers, start, end):
+        request = CryptoBarsRequest(
+            symbol_or_symbols=tickers, 
+            timeframe=TimeFrame.Day, 
+            start=start, 
+            end=end,
+        )
+        bars = self.client.get_crypto_bars(request)
+        raw = bars.df
+        mod = (raw.reset_index()[["timestamp", "symbol", "close"]].rename(columns={"timestamp": "date", "symbol": "ticker", "close": "adj_close"}))
+        mod["date"] = mod["date"].dt.tz_localize(None).dt.normalize()
+        return mod
+    
 if __name__ == "__main__":
     yf_provider = YFinanceProvider()
     df = yf_provider.get_prices(["AAPL", "MSFT", "SPY"], "2024-01-01", "2025-01-01")
@@ -60,5 +80,10 @@ if __name__ == "__main__":
     provider = AlpacaProvider()
     df = provider.get_prices(["AAPL", "MSFT", "SPY"], "2024-01-01", "2025-01-01")
     print("\nAlpaca:")
+    print(df.head())
+    print(df.shape)
+
+    p = AlpacaCryptoProvider()
+    df = p.get_prices(["BTC/USD", "ETH/USD"], "2024-01-01", "2025-01-01")
     print(df.head())
     print(df.shape)
