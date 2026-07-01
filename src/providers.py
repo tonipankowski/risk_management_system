@@ -11,6 +11,18 @@ from alpaca.data.requests import CryptoBarsRequest
 from alpaca.data.timeframe import TimeFrame
 from alpaca.data.enums import Adjustment
 
+def _get_alpaca_keys():
+    try:
+        import streamlit as st
+        if "ALPACA_API_KEY" in st.secrets:
+            return st.secrets["ALPACA_API_KEY"], st.secrets["ALPACA_SECRET_KEY"]
+    except (ImportError, FileNotFoundError):
+        pass
+    from dotenv import load_dotenv
+    import os
+    load_dotenv()
+    return os.environ.get("ALPACA_API_KEY"), os.environ.get("ALPACA_SECRET_KEY")
+
 class DataProvider(ABC):
     @abstractmethod
     def get_prices(self, tickers: list[str], start: str, end: str) -> pd.DataFrame:
@@ -33,9 +45,7 @@ class CSVProvider(DataProvider):
     
 class AlpacaProvider(DataProvider):
     def __init__(self):
-        load_dotenv()
-        api_key = os.environ.get("ALPACA_API_KEY")
-        secret_key = os.environ.get("ALPACA_SECRET_KEY")
+        api_key, secret_key = _get_alpaca_keys()
         self.client = StockHistoricalDataClient(api_key, secret_key)
         
     def get_prices(self, tickers, start, end):
@@ -63,6 +73,7 @@ class AlpacaCryptoProvider(DataProvider):
         mod["date"] = mod["date"].dt.tz_localize(None).dt.normalize()
         return mod
     
+
 if __name__ == "__main__":
     yf_provider = YFinanceProvider()
     df = yf_provider.get_prices(["AAPL", "MSFT", "SPY"], "2024-01-01", "2025-01-01")
