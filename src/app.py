@@ -40,7 +40,7 @@ else:
     import plotly.graph_objects as go
     from datetime import date
     from providers import AlpacaProvider, AlpacaCryptoProvider
-    import storage, portfolio, risk
+    import storage, portfolio, risk, tickers
     
     storage.init_db()
     user_id = st.session_state.user_id
@@ -54,8 +54,18 @@ else:
 
     # ADD
     with st.sidebar.expander("Add holding"):
-        new_ticker = st.text_input("Ticker", key="add_ticker").strip().upper()
-        new_type = st.radio("Type", ["stock", "crypto"], key="add_type")
+        category = st.selectbox(
+            "Category",
+            list(tickers.CATEGORIES) + ["Other (type ticker)"],
+            key="add_category",
+        )
+        if category == "Other (type ticker)":
+            new_ticker = st.text_input("Ticker", key="add_ticker").strip().upper()
+            new_type = st.radio("Type", ["stock", "crypto"], key="add_type")
+        else:
+            catalog = tickers.CATEGORIES[category]
+            choice = st.selectbox("Asset", list(catalog), key="add_choice")
+            new_ticker, new_type = catalog[choice]
         new_qty = st.text_input("Quantity", key="add_qty")
         if st.button("Add", key="add_btn"):
             try:
@@ -76,7 +86,8 @@ else:
     # DELETE
     if len(positions) > 0:
         with st.sidebar.expander("Delete holding"):
-            del_ticker = st.selectbox("Ticker to remove", list(positions.index), key="del_ticker")
+            del_ticker = st.selectbox("Ticker to remove", list(positions.index),
+                                      format_func=tickers.display_name, key="del_ticker")
             if st.button("Delete", key="del_btn"):
                 positions = positions.drop(del_ticker)
                 asset_types.pop(del_ticker, None)
@@ -86,7 +97,8 @@ else:
     # CHANGE QUANTITY
     if len(positions) > 0:
         with st.sidebar.expander("Change quantity"):
-            chg_ticker = st.selectbox("Ticker", list(positions.index), key="chg_ticker")
+            chg_ticker = st.selectbox("Ticker", list(positions.index),
+                                      format_func=tickers.display_name, key="chg_ticker")
             chg_qty = st.text_input("New quantity", key="chg_qty")
             if st.button("Update", key="chg_btn"):
                 try:
@@ -132,9 +144,9 @@ else:
     if len(positions) == 0:
         st.info("No portfolio saved yet.")
     else:
-        tickers = list(positions.index)
-        stock_tickers = [t for t in tickers if asset_types[t] == "stock"]
-        crypto_tickers = [t for t in tickers if asset_types[t] == "crypto"]
+        held = list(positions.index)
+        stock_tickers = [t for t in held if asset_types[t] == "stock"]
+        crypto_tickers = [t for t in held if asset_types[t] == "crypto"]
         
         frames = []
         if stock_tickers:
@@ -159,6 +171,9 @@ else:
         col_table, col_donut = st.columns([3, 2])
         with col_table:
             display = summary.copy()
+            display.insert(0, "ticker", display.index)
+            display.index = [tickers.display_name(t) for t in display.index]
+            display.index.name = "name"
             display["weight"] = (display["weight"] * 100).round(1).astype(str) + "%"
             display["value"] = display["value"].round(2)
             display["price"] = display["price"].round(2)
@@ -166,7 +181,7 @@ else:
         with col_donut:
             fig_donut = px.pie(
                 values=summary["value"],
-                names=summary.index,
+                names=[tickers.display_name(t) for t in summary.index],
                 hole=0.55,
                 color_discrete_sequence=["#00D09C", "#4A90D9", "#FF6B6B", "#F5A623", "#9B59B6"]
             )
@@ -192,6 +207,8 @@ else:
         
         with tab1:
             corr = risk.correlation_matrix(prices, asset_types)
+            labels = [tickers.display_name(t) for t in corr.columns]
+            corr = corr.set_axis(labels, axis=0).set_axis(labels, axis=1)
             fig = px.imshow(corr, text_auto=".2f", 
                             color_continuous_scale="RdBu_r",
                             zmin=-1, zmax=1, 
